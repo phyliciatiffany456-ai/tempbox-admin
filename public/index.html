@@ -4,11 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TEMPBOX - Central Admin & IoT Operations Portal</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
   <script>
@@ -31,9 +28,8 @@
 </head>
 <body class="bg-surfaceBg text-slate-800 font-sans antialiased min-h-screen flex">
 
-  <!-- SIDEBAR NAVIGATION -->
+  <!-- SIDEBAR -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-shrink-0 hidden md:flex flex-col border-r border-slate-800 select-none">
-    <!-- Brand Header -->
     <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800 bg-slate-950">
       <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-cyan-500/20">
         T
@@ -44,7 +40,6 @@
       </div>
     </div>
 
-    <!-- Navigation Menu -->
     <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
       <button onclick="switchTab('overview')" id="tab-btn-overview" class="tab-btn active-tab w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all">
         <i class="fa-solid fa-chart-pie w-5 text-center text-cyan-400"></i>
@@ -53,7 +48,7 @@
 
       <button onclick="switchTab('lockers')" id="tab-btn-lockers" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:bg-slate-800/80">
         <i class="fa-solid fa-boxes-stacked w-5 text-center text-blue-400"></i>
-        <span>Manajemen Loker</span>
+        <span>Manajemen Loker (CRUD)</span>
       </button>
 
       <button onclick="switchTab('telemetry')" id="tab-btn-telemetry" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:bg-slate-800/80">
@@ -63,16 +58,15 @@
 
       <button onclick="switchTab('rentals')" id="tab-btn-rentals" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:bg-slate-800/80">
         <i class="fa-solid fa-receipt w-5 text-center text-emerald-400"></i>
-        <span>Transaksi & Sewa</span>
+        <span>Transaksi & Sewa (CRUD)</span>
       </button>
 
       <button onclick="switchTab('members')" id="tab-btn-members" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:bg-slate-800/80">
         <i class="fa-solid fa-users w-5 text-center text-purple-400"></i>
-        <span>Data Member & Loyalty</span>
+        <span>Data Member (CRUD)</span>
       </button>
     </nav>
 
-    <!-- System Status Footer -->
     <div class="p-4 border-t border-slate-800 bg-slate-950/60">
       <div class="flex items-center justify-between text-xs mb-2">
         <span class="text-slate-400">Status Server:</span>
@@ -81,34 +75,30 @@
           ONLINE
         </span>
       </div>
-      <div class="text-[11px] text-slate-500 truncate">Port: 3000 | Localhost Node.js</div>
+      <div class="text-[11px] text-slate-500 truncate">JSON File-Store Persistent</div>
     </div>
   </aside>
 
-  <!-- MAIN VIEWPORT -->
+  <!-- MAIN WRAPPER -->
   <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-    <!-- Top Navbar -->
     <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm flex-shrink-0">
       <div class="flex items-center gap-3">
         <span id="page-title" class="font-bold text-lg text-slate-800">Ringkasan Operasional & KPI</span>
         <span class="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200">
-          5 Lokasi Terhubung
+          Full CRUD Active
         </span>
       </div>
 
       <div class="flex items-center gap-4">
-        <!-- Live Clock -->
         <div class="text-right hidden sm:block">
-          <div id="live-clock" class="text-xs font-bold text-slate-700">18:30:00 WIB</div>
-          <div class="text-[10px] text-slate-400">Sinkronisasi Realtime</div>
+          <div id="live-clock" class="text-xs font-bold text-slate-700">18:40:00 WIB</div>
+          <div class="text-[10px] text-slate-400">Realtime Cloud Sync</div>
         </div>
 
-        <!-- Refresh Button -->
-        <button onclick="fetchOverview(); fetchLockers(); fetchTelemetry();" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition" title="Refresh Data">
+        <button onclick="refreshAll()" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition" title="Refresh Data">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
 
-        <!-- Admin Profile -->
         <div class="flex items-center gap-2.5 pl-3 border-l border-slate-200">
           <div class="w-8 h-8 rounded-full bg-slate-800 text-cyan-400 flex items-center justify-center font-bold text-xs">
             AD
@@ -121,14 +111,11 @@
       </div>
     </header>
 
-    <!-- CONTENT WRAPPER -->
     <main class="flex-1 overflow-y-auto p-6 bg-slate-50">
 
       <!-- TAB 1: OVERVIEW -->
       <section id="view-overview" class="space-y-6">
-        <!-- KPI Row -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <!-- Total Lokasi & Loker -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Loker</p>
@@ -140,7 +127,6 @@
             </div>
           </div>
 
-          <!-- Okupansi Loker -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tingkat Okupansi</p>
@@ -152,7 +138,6 @@
             </div>
           </div>
 
-          <!-- Kepatuhan Suhu SLA -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kepatuhan Suhu</p>
@@ -164,12 +149,11 @@
             </div>
           </div>
 
-          <!-- Omset Hari Ini -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Omset Hari Ini</p>
               <h3 id="kpi-today-revenue" class="text-2xl font-black text-amber-600 mt-1">Rp 685.000</h3>
-              <p class="text-xs text-slate-400 mt-0.5">Transaksi Sewa Realtime</p>
+              <p class="text-xs text-slate-400 mt-0.5">Transaksi Realtime</p>
             </div>
             <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
               <i class="fa-solid fa-coins"></i>
@@ -177,16 +161,14 @@
           </div>
         </div>
 
-        <!-- Middle Section: Location Status & Telemetry Summary -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Locations Overview Card -->
           <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div class="flex items-center justify-between mb-4">
               <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                 <i class="fa-solid fa-map-location-dot text-cyan-600"></i>
                 Status Operasional Titik Loker
               </h4>
-              <button onclick="switchTab('lockers')" class="text-xs text-cyan-600 font-semibold hover:underline">Lihat Detail &rarr;</button>
+              <button onclick="switchTab('lockers')" class="text-xs text-cyan-600 font-semibold hover:underline">Kelola &rarr;</button>
             </div>
 
             <div class="overflow-x-auto">
@@ -201,34 +183,28 @@
                     <th class="py-2.5 text-right">Status</th>
                   </tr>
                 </thead>
-                <tbody id="overview-locations-tbody" class="divide-y divide-slate-100 text-slate-700">
-                  <!-- Populated by JS -->
-                </tbody>
+                <tbody id="overview-locations-tbody" class="divide-y divide-slate-100 text-slate-700"></tbody>
               </table>
             </div>
           </div>
 
-          <!-- System Activity & Alerts -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
             <h4 class="font-bold text-slate-800 text-sm mb-3 flex items-center gap-2">
               <i class="fa-solid fa-bolt text-amber-500"></i>
               Log Aktivitas & Sensor
             </h4>
-            <div id="overview-logs-container" class="flex-1 space-y-3 overflow-y-auto max-h-72 text-xs">
-              <!-- Populated by JS -->
-            </div>
+            <div id="overview-logs-container" class="flex-1 space-y-3 overflow-y-auto max-h-72 text-xs"></div>
           </div>
         </div>
       </section>
 
-      <!-- TAB 2: LOCKERS & COMPARTMENTS -->
+      <!-- TAB 2: LOCKERS (CRUD) -->
       <section id="view-lockers" class="hidden space-y-6">
-        <!-- Filter Header -->
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center gap-3">
-            <label class="text-xs font-bold text-slate-500 uppercase">Pilih Lokasi:</label>
+            <label class="text-xs font-bold text-slate-500 uppercase">Filter Lokasi:</label>
             <select id="locker-location-filter" onchange="fetchLockers()" class="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-cyan-500">
-              <option value="all">Semua Lokasi (5 Titik)</option>
+              <option value="all">Semua Lokasi</option>
               <option value="loc_gi">Grand Indonesia Mall</option>
               <option value="loc_sc">Senayan City</option>
               <option value="loc_kintamani">Kintamani Glamping Resort</option>
@@ -237,29 +213,26 @@
             </select>
           </div>
 
-          <!-- Status Indicator Legend -->
-          <div class="flex items-center gap-4 text-xs">
-            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Tersedia</span>
-            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-cyan-600"></span> Terisi</span>
-            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Pemeliharaan</span>
+          <!-- CREATE COMPARTMENT BUTTON -->
+          <div class="flex items-center gap-3">
+            <button onclick="openCreateCompModal()" class="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-plus"></i>
+              Tambah Kompartemen Baru
+            </button>
           </div>
         </div>
 
-        <!-- Locker Grid -->
-        <div id="lockers-grid-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <!-- Populated by JS -->
-        </div>
+        <div id="lockers-grid-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
       </section>
 
-      <!-- TAB 3: IOT TELEMETRY & CHARTS -->
+      <!-- TAB 3: IOT TELEMETRY -->
       <section id="view-telemetry" class="hidden space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Main Chart Container -->
           <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h4 class="font-bold text-slate-800 text-sm">Grafik Suhu Kompartemen Realtime (°C)</h4>
-                <p class="text-xs text-slate-400">Monitoring fluktuasi sensor termal DS18B20 setiap 30 detik</p>
+                <p class="text-xs text-slate-400">Sensor Termal DS18B20 Otomatis Update</p>
               </div>
               <div class="flex items-center gap-2">
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-cyan-50 text-cyan-700">
@@ -275,34 +248,28 @@
             </div>
           </div>
 
-          <!-- Hardware Diagnostics Card -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
               <i class="fa-solid fa-microchip text-blue-600"></i>
               Diagnostik Perangkat IoT
             </h4>
-
             <div class="space-y-3 text-xs">
               <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                 <span class="text-slate-500 font-medium">Modul Pendingin Peltier:</span>
                 <span id="diag-peltier" class="font-bold text-cyan-600">Active (PWM 68%)</span>
               </div>
-
               <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                 <span class="text-slate-500 font-medium">Elemen Pemanas Keramik:</span>
                 <span id="diag-heater" class="font-bold text-orange-600">Active (PID 45%)</span>
               </div>
-
               <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                <span class="text-slate-500 font-medium">Status Sensor DS18B20:</span>
+                <span class="text-slate-500 font-medium">Sensor DS18B20:</span>
                 <span class="font-bold text-emerald-600"><i class="fa-solid fa-check-circle"></i> Optimal (5/5 Online)</span>
               </div>
-
               <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                 <span class="text-slate-500 font-medium">Relay Solenoid Kunci:</span>
                 <span class="font-bold text-slate-700">12V DC Relay Ready</span>
               </div>
-
               <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                 <span class="text-slate-500 font-medium">Gateway ESP32 Telemetri:</span>
                 <span class="font-bold text-emerald-600">Connected (WiFi RSSI -58dBm)</span>
@@ -312,7 +279,7 @@
         </div>
       </section>
 
-      <!-- TAB 4: RENTALS & TRANSACTIONS -->
+      <!-- TAB 4: RENTALS (CRUD) -->
       <section id="view-rentals" class="hidden space-y-6">
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -320,7 +287,13 @@
               <i class="fa-solid fa-file-invoice-dollar text-emerald-600"></i>
               Riwayat Transaksi & Penyewaan Loker
             </h4>
-            <input type="text" id="rental-search-input" onkeyup="filterRentalsTable()" placeholder="Cari nama, ID sewa, atau kompartemen..." class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-64 outline-none focus:ring-2 focus:ring-cyan-500">
+            <div class="flex items-center gap-3">
+              <input type="text" id="rental-search-input" onkeyup="filterRentalsTable()" placeholder="Cari nama, ID sewa, box..." class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-56 outline-none focus:ring-2 focus:ring-cyan-500">
+              <button onclick="openCreateRentalModal()" class="px-3.5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-500/20 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i>
+                Tambah Sewa Manual
+              </button>
+            </div>
           </div>
 
           <div class="overflow-x-auto">
@@ -330,31 +303,36 @@
                   <th class="py-3 px-2">ID Sewa</th>
                   <th class="py-3 px-2">Penyewa</th>
                   <th class="py-3 px-2">Lokasi & Box</th>
-                  <th class="py-3 px-2">Tipe Suhu</th>
+                  <th class="py-3 px-2">Tipe</th>
                   <th class="py-3 px-2">Waktu Mulai - Selesai</th>
                   <th class="py-3 px-2 text-center">Durasi</th>
                   <th class="py-3 px-2 text-right">Tarif</th>
-                  <th class="py-3 px-2">Pembayaran</th>
+                  <th class="py-3 px-2">Metode Bayar</th>
                   <th class="py-3 px-2 text-center">Status</th>
+                  <th class="py-3 px-2 text-center">Aksi</th>
                 </tr>
               </thead>
-              <tbody id="rentals-tbody" class="divide-y divide-slate-100 text-slate-700">
-                <!-- Populated by JS -->
-              </tbody>
+              <tbody id="rentals-tbody" class="divide-y divide-slate-100 text-slate-700"></tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- TAB 5: MEMBERS & CRM -->
+      <!-- TAB 5: MEMBERS (CRUD) -->
       <section id="view-members" class="hidden space-y-6">
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
             <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
               <i class="fa-solid fa-address-book text-purple-600"></i>
-              Data Pengguna & Member Loyalitas
+              Database Member & CRM Loyalitas
             </h4>
-            <input type="text" id="member-search-input" onkeyup="filterMembersTable()" placeholder="Cari nama atau no. telepon member..." class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-64 outline-none focus:ring-2 focus:ring-cyan-500">
+            <div class="flex items-center gap-3">
+              <input type="text" id="member-search-input" onkeyup="filterMembersTable()" placeholder="Cari nama atau telepon..." class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-56 outline-none focus:ring-2 focus:ring-purple-500">
+              <button onclick="openCreateMemberModal()" class="px-3.5 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-md shadow-purple-500/20 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-user-plus"></i>
+                Tambah Member Baru
+              </button>
+            </div>
           </div>
 
           <div class="overflow-x-auto">
@@ -368,11 +346,10 @@
                   <th class="py-3 px-2 text-right">Total Belanja</th>
                   <th class="py-3 px-2 text-center">Kode Referral</th>
                   <th class="py-3 px-2 text-right">Bergabung</th>
+                  <th class="py-3 px-2 text-center">Aksi</th>
                 </tr>
               </thead>
-              <tbody id="members-tbody" class="divide-y divide-slate-100 text-slate-700">
-                <!-- Populated by JS -->
-              </tbody>
+              <tbody id="members-tbody" class="divide-y divide-slate-100 text-slate-700"></tbody>
             </table>
           </div>
         </div>
@@ -381,9 +358,207 @@
     </main>
   </div>
 
-  <!-- EMERGENCY UNLOCK MODAL -->
+  <!-- ================= MODALS (CRUD) ================= -->
+
+  <!-- MODAL: ADD / EDIT COMPARTMENT -->
+  <div id="modal-comp" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="modal-comp-title" class="font-bold text-base text-slate-800">Tambah Kompartemen Loker</h3>
+        <button onclick="closeCompModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-base"></i></button>
+      </div>
+
+      <form id="comp-form" onsubmit="saveCompartment(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="comp-is-edit" value="false">
+
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">Kode / ID Kompartemen:</label>
+          <input type="text" id="comp-id-input" placeholder="Misal: C-GI-D1" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">Titik Lokasi:</label>
+          <select id="comp-loc-select" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="loc_gi">Grand Indonesia Mall</option>
+            <option value="loc_sc">Senayan City</option>
+            <option value="loc_kintamani">Kintamani Glamping Resort</option>
+            <option value="loc_lembang">Lembang Ecotourism Hub</option>
+            <option value="loc_siloam">Siloam Medical Hub</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Tipe Suhu:</label>
+            <select id="comp-type-select" onchange="onCompTypeChange()" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="Cold">Cold Box (Dingin)</option>
+              <option value="Hot">Hot Box (Hangat)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Ukuran Box:</label>
+            <select id="comp-size-select" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="Small">Small (Kecil)</option>
+              <option value="Medium">Medium (Sedang)</option>
+              <option value="Large">Large (Besar)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Target Suhu (°C):</label>
+            <input type="number" step="0.1" id="comp-target-temp" value="4.0" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Status Box:</label>
+            <select id="comp-status-select" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="available">Tersedia</option>
+              <option value="occupied">Terisi</option>
+              <option value="maintenance">Maintenance</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3">
+          <button type="button" onclick="closeCompModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+          <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition">Simpan Kompartemen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT MEMBER -->
+  <div id="modal-member" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="modal-member-title" class="font-bold text-base text-slate-800">Tambah Member Baru</h3>
+        <button onclick="closeMemberModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-base"></i></button>
+      </div>
+
+      <form id="member-form" onsubmit="saveMember(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="member-edit-id" value="">
+
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">Nama Lengkap:</label>
+          <input type="text" id="member-name-input" placeholder="Misal: Tiffany Phylicia" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Nomor WhatsApp / HP:</label>
+            <input type="text" id="member-phone-input" placeholder="08123456789" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Email:</label>
+            <input type="email" id="member-email-input" placeholder="user@gmail.com" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Tingkatan Tier:</label>
+            <select id="member-tier-select" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-purple-500">
+              <option value="Silver Member">Silver Member</option>
+              <option value="Gold Member">Gold Member</option>
+              <option value="Diamond Member">Diamond Member</option>
+              <option value="Platinum Member">Platinum Member</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Poin Loyalty:</label>
+            <input type="number" id="member-points-input" value="100" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Total Belanja (Rp):</label>
+            <input type="number" id="member-spending-input" value="0" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Kode Referral:</label>
+            <input type="text" id="member-referral-input" placeholder="Auto-generated" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3">
+          <button type="button" onclick="closeMemberModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+          <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-md shadow-purple-500/20 transition">Simpan Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT RENTAL -->
+  <div id="modal-rental" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="modal-rental-title" class="font-bold text-base text-slate-800">Tambah Sewa Manual</h3>
+        <button onclick="closeRentalModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-base"></i></button>
+      </div>
+
+      <form id="rental-form" onsubmit="saveRental(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="rental-edit-id" value="">
+
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">Nama Penyewa:</label>
+          <input type="text" id="rental-tenant-input" placeholder="Nama Pelanggan" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">No. HP:</label>
+            <input type="text" id="rental-phone-input" placeholder="0812345678" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Kompartemen Box:</label>
+            <input type="text" id="rental-comp-input" placeholder="C-GI-A1" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Durasi (Jam):</label>
+            <input type="number" id="rental-hours-input" value="3" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Total Biaya (Rp):</label>
+            <input type="number" id="rental-amount-input" value="35000" required class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Metode Bayar:</label>
+            <select id="rental-payment-select" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="QRIS Gopay">QRIS Gopay</option>
+              <option value="BCA Virtual Account">BCA Virtual Account</option>
+              <option value="ShopeePay">ShopeePay</option>
+              <option value="QRIS Dana">QRIS Dana</option>
+              <option value="Tunai / Manual">Tunai / Manual</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Status Sewa:</label>
+            <select id="rental-status-select" class="w-full border border-slate-200 rounded-xl p-2.5 bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="active">Aktif</option>
+              <option value="completed">Selesai</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3">
+          <button type="button" onclick="closeRentalModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+          <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-500/20 transition">Simpan Transaksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EMERGENCY UNLOCK -->
   <div id="unlock-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-200">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
       <div class="flex items-center gap-3 text-red-600 mb-3">
         <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-xl">
           <i class="fa-solid fa-triangle-exclamation"></i>
@@ -404,14 +579,11 @@
           <option value="Permintaan Bantuan Teknis Pengguna (Barcode Rusak/HP Habis Baterai)">Permintaan Pengguna (Kendala HP/Barcode)</option>
           <option value="Pemeriksaan Kebersihan & Pemeliharaan Rutin">Pemeriksaan & Maintenance Rutin</option>
           <option value="Penyewa Melebihi Batas Waktu Sewa (Overdue Recall)">Penyewa Melebihi Waktu Sewa (Overdue)</option>
-          <option value="Inspeksi Darurat Keselamatan Suhu">Inspeksi Darurat Keselamatan Suhu</option>
         </select>
       </div>
 
       <div class="flex items-center justify-end gap-2.5">
-        <button onclick="closeUnlockModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
-          Batal
-        </button>
+        <button onclick="closeUnlockModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
         <button id="btn-confirm-unlock" onclick="executeUnlock()" class="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg shadow-red-500/20 transition flex items-center gap-2">
           <i class="fa-solid fa-lock-open"></i>
           Konfirmasi Buka Pintu
@@ -420,7 +592,7 @@
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION -->
+  <!-- TOAST -->
   <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <div id="toast-content" class="px-4 py-3 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2.5 bg-slate-800 text-white">
       <i id="toast-icon" class="fa-solid fa-check text-emerald-400"></i>

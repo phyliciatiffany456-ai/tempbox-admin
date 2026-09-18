@@ -1,5 +1,5 @@
-// TEMPBOX Admin Portal - Standalone Backend Server
-// Built with pure Node.js (zero external dependencies required)
+// TEMPBOX Admin Portal - Full CRUD Backend Server
+// Pure Node.js with File-Based JSON Persistence
 
 const http = require('http');
 const fs = require('fs');
@@ -8,9 +8,10 @@ const url = require('url');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const DB_FILE = path.join(__dirname, 'data', 'database.json');
 
-// In-Memory Database (Synced with TEMPBOX Mobile Ecosystem)
-const database = {
+// Default Seed Data
+const defaultData = {
   locations: [
     {
       id: 'loc_gi',
@@ -242,36 +243,60 @@ const database = {
   ],
 
   logs: [
-    { time: '18:25:10', type: 'info', message: 'Sistem sinkronisasi IoT berjalan normal di 5 titik lokasi.' },
+    { time: '18:40:10', type: 'info', message: 'Sistem sinkronisasi IoT berjalan normal di 5 titik lokasi.' },
     { time: '18:20:45', type: 'success', message: 'Perpanjangan sewa kompartemen C-GI-A1 (+1 Jam) berhasil dibukukan.' },
     { time: '18:15:30', type: 'info', message: 'DS18B20 Sensor Cold Box C-GI-A1 suhu stabil 3.8°C.' },
     { time: '18:02:11', type: 'info', message: 'Pintu kompartemen C-SC-B2 ditutup rapat oleh pengguna Ahmad Fauzi.' }
   ]
 };
 
-// Request Parser Helper
+// Database Loader & Persister
+let db = defaultData;
+
+function loadDatabase() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      db = JSON.parse(raw);
+      console.log('Database loaded from persistent file:', DB_FILE);
+    } else {
+      saveDatabase();
+      console.log('Initialized database with default seed data.');
+    }
+  } catch (err) {
+    console.error('Error loading database file, using fallback in-memory:', err);
+    db = defaultData;
+  }
+}
+
+function saveDatabase() {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error saving database:', err);
+  }
+}
+
+loadDatabase();
+
+// Body Parser
 function parseBody(req) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
     req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (err) {
-        resolve({});
-      }
+      try { resolve(body ? JSON.parse(body) : {}); }
+      catch (e) { resolve({}); }
     });
-    req.on('error', reject);
   });
 }
 
-// REST API Handler
+// REST API Server
 const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
   const method = req.method;
 
-  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -286,54 +311,157 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/api/')) {
     res.setHeader('Content-Type', 'application/json');
 
-    // 1. Overview Dashboard Stats
+    // 1. OVERVIEW
     if (pathname === '/api/overview' && method === 'GET') {
-      const totalComp = database.compartments.length;
-      const occupiedComp = database.compartments.filter(c => c.status === 'occupied').length;
-      const occupancyRate = ((occupiedComp / totalComp) * 100).toFixed(1) + '%';
-      const todayRevenue = database.rentals.reduce((sum, r) => sum + r.amount, 0);
+      const totalComp = db.compartments.length;
+      const occupiedComp = db.compartments.filter(c => c.status === 'occupied').length;
+      const occupancyRate = totalComp ? ((occupiedComp / totalComp) * 100).toFixed(1) + '%' : '0%';
+      const todayRevenue = db.rentals.reduce((sum, r) => sum + (r.amount || 0), 0);
 
-      const overview = {
-        totalLocations: database.locations.length,
+      res.writeHead(200);
+      res.end(JSON.stringify({
+        totalLocations: db.locations.length,
         totalCompartments: totalComp,
         occupiedCount: occupiedComp,
-        availableCount: database.compartments.filter(c => c.status === 'available').length,
-        maintenanceCount: database.compartments.filter(c => c.status === 'maintenance').length,
+        availableCount: db.compartments.filter(c => c.status === 'available').length,
+        maintenanceCount: db.compartments.filter(c => c.status === 'maintenance').length,
         occupancyRate: occupancyRate,
         tempCompliance: '99.8%',
         todayRevenue: todayRevenue,
-        activeMembers: database.members.length,
+        activeMembers: db.members.length,
         activeRentals: occupiedComp,
         coldAvg: '3.9°C',
         hotAvg: '60.1°C',
-        systemStatus: 'ONLINE_SECURE',
         lastUpdated: new Date().toLocaleTimeString('id-ID')
-      };
-      res.writeHead(200);
-      res.end(JSON.stringify(overview));
+      }));
       return;
     }
 
-    // 2. Lockers & Compartments Fleet
+    // 2. LOCATIONS (CRUD)
+    if (pathname === '/api/locations') {
+      if (method === 'GET') {
+        res.writeHead(200);
+        res.end(JSON.stringify({ locations: db.locations }));
+        return;
+      }
+      if (method === 'POST') {
+        const body = await parseBody(req);
+        const newLoc = {
+          id: body.id || 'loc_' + Date.now(),
+          name: body.name || 'Lokasi Baru',
+          city: body.city || 'Jakarta',
+          address: body.address || '-',
+          totalUnits: Number(body.totalUnits) || 4,
+          targetCold: Number(body.targetCold) || 4.0,
+          targetHot: Number(body.targetHot) || 60.0,
+          currentCold: 3.9,
+          currentHot: 60.1,
+          status: 'Optimal'
+        };
+        db.locations.push(newLoc);
+        saveDatabase();
+        res.writeHead(201);
+        res.end(JSON.stringify({ success: true, location: newLoc }));
+        return;
+      }
+    }
+
+    // 3. COMPARTMENTS (CRUD)
     if (pathname === '/api/lockers' && method === 'GET') {
       const locFilter = parsedUrl.query.location;
-      let results = database.compartments;
+      let results = db.compartments;
       if (locFilter && locFilter !== 'all') {
         results = results.filter(c => c.locationId === locFilter);
       }
       res.writeHead(200);
       res.end(JSON.stringify({
-        locations: database.locations,
+        locations: db.locations,
         compartments: results
       }));
       return;
     }
 
-    // 3. Emergency Remote Unlock API
+    // CREATE COMPARTMENT
+    if (pathname === '/api/lockers' && method === 'POST') {
+      const body = await parseBody(req);
+      const loc = db.locations.find(l => l.id === body.locationId) || db.locations[0];
+      const newComp = {
+        id: body.id ? body.id.toUpperCase() : `C-${Date.now().toString().slice(-4)}`,
+        locationId: loc.id,
+        locationName: loc.name,
+        size: body.size || 'Medium',
+        type: body.type || 'Cold',
+        targetTemp: Number(body.targetTemp) || (body.type === 'Hot' ? 60.0 : 4.0),
+        currentTemp: Number(body.currentTemp) || (body.type === 'Hot' ? 60.0 : 4.0),
+        status: body.status || 'available',
+        tenant: body.tenant || null,
+        rentalId: body.rentalId || null,
+        pin: body.pin || null,
+        doorOpen: false
+      };
+      db.compartments.push(newComp);
+      db.logs.unshift({
+        time: new Date().toLocaleTimeString('id-ID'),
+        type: 'info',
+        message: `Kompartemen baru ${newComp.id} berhasil ditambahkan di ${loc.name}.`
+      });
+      saveDatabase();
+      res.writeHead(201);
+      res.end(JSON.stringify({ success: true, compartment: newComp }));
+      return;
+    }
+
+    // UPDATE COMPARTMENT: /api/lockers/:id
+    if (pathname.startsWith('/api/lockers/') && method === 'PUT') {
+      const compId = pathname.replace('/api/lockers/', '');
+      const body = await parseBody(req);
+      const comp = db.compartments.find(c => c.id === compId);
+      if (!comp) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Kompartemen tidak ditemukan' }));
+        return;
+      }
+      if (body.size !== undefined) comp.size = body.size;
+      if (body.type !== undefined) comp.type = body.type;
+      if (body.targetTemp !== undefined) comp.targetTemp = Number(body.targetTemp);
+      if (body.currentTemp !== undefined) comp.currentTemp = Number(body.currentTemp);
+      if (body.status !== undefined) comp.status = body.status;
+      if (body.tenant !== undefined) comp.tenant = body.tenant;
+      if (body.rentalId !== undefined) comp.rentalId = body.rentalId;
+      if (body.doorOpen !== undefined) comp.doorOpen = body.doorOpen;
+
+      saveDatabase();
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, compartment: comp }));
+      return;
+    }
+
+    // DELETE COMPARTMENT: /api/lockers/:id
+    if (pathname.startsWith('/api/lockers/') && method === 'DELETE') {
+      const compId = pathname.replace('/api/lockers/', '');
+      const idx = db.compartments.findIndex(c => c.id === compId);
+      if (idx === -1) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Kompartemen tidak ditemukan' }));
+        return;
+      }
+      const deleted = db.compartments.splice(idx, 1)[0];
+      db.logs.unshift({
+        time: new Date().toLocaleTimeString('id-ID'),
+        type: 'warning',
+        message: `Kompartemen ${compId} telah dihapus dari sistem.`
+      });
+      saveDatabase();
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, message: `Kompartemen ${compId} berhasil dihapus.`, deleted }));
+      return;
+    }
+
+    // EMERGENCY UNLOCK
     if (pathname === '/api/lockers/unlock' && method === 'POST') {
       const body = await parseBody(req);
       const { compartmentId, reason } = body;
-      const comp = database.compartments.find(c => c.id === compartmentId);
+      const comp = db.compartments.find(c => c.id === compartmentId);
 
       if (!comp) {
         res.writeHead(404);
@@ -341,49 +469,202 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      // Simulate solenoid trigger
       comp.status = 'available';
       comp.doorOpen = true;
       const logEntry = {
         time: new Date().toLocaleTimeString('id-ID'),
         type: 'warning',
-        message: `EMERGENCY UNLOCK: Kompartemen ${comp.id} di ${comp.locationName} dibuka jarak jauh oleh Admin. Alasan: ${reason || 'Permintaan Bantuan Teknis'}`
+        message: `EMERGENCY UNLOCK: Kompartemen ${comp.id} di ${comp.locationName} dibuka jarak jauh oleh Admin. Alasan: ${reason || 'Bantuan Teknis'}`
       };
-      database.logs.unshift(logEntry);
+      db.logs.unshift(logEntry);
+      saveDatabase();
 
       res.writeHead(200);
       res.end(JSON.stringify({
         success: true,
-        message: `Solenoid relay kompartemen ${comp.id} berhasil di-trigger. Pintu sekarang TERBUKA.`,
+        message: `Relay solenoid ${comp.id} dibuka. Pintu sekarang TERBUKA.`,
         compartment: comp,
         log: logEntry
       }));
       return;
     }
 
-    // 4. Rentals & Transactions
-    if (pathname === '/api/rentals' && method === 'GET') {
+    // 4. MEMBERS CRM (CRUD)
+    if (pathname === '/api/members') {
+      if (method === 'GET') {
+        res.writeHead(200);
+        res.end(JSON.stringify({ members: db.members, total: db.members.length }));
+        return;
+      }
+      // CREATE MEMBER
+      if (method === 'POST') {
+        const body = await parseBody(req);
+        const newMember = {
+          id: 'usr_' + Date.now(),
+          name: body.name || 'Member Baru',
+          phone: body.phone || '-',
+          email: body.email || '-',
+          tier: body.tier || 'Silver Member',
+          loyaltyPoints: Number(body.loyaltyPoints) || 100,
+          totalSpending: Number(body.totalSpending) || 0,
+          referralCode: body.referralCode || ('TBX' + (body.phone ? body.phone.slice(-4) : '2026')),
+          joinDate: new Date().toISOString().split('T')[0]
+        };
+        db.members.unshift(newMember);
+        db.logs.unshift({
+          time: new Date().toLocaleTimeString('id-ID'),
+          type: 'success',
+          message: `Member baru terdaftar: ${newMember.name} (${newMember.tier}).`
+        });
+        saveDatabase();
+        res.writeHead(201);
+        res.end(JSON.stringify({ success: true, member: newMember }));
+        return;
+      }
+    }
+
+    // UPDATE MEMBER: /api/members/:id
+    if (pathname.startsWith('/api/members/') && method === 'PUT') {
+      const memberId = pathname.replace('/api/members/', '');
+      const body = await parseBody(req);
+      const member = db.members.find(m => m.id === memberId);
+      if (!member) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Member tidak ditemukan' }));
+        return;
+      }
+      if (body.name !== undefined) member.name = body.name;
+      if (body.phone !== undefined) member.phone = body.phone;
+      if (body.email !== undefined) member.email = body.email;
+      if (body.tier !== undefined) member.tier = body.tier;
+      if (body.loyaltyPoints !== undefined) member.loyaltyPoints = Number(body.loyaltyPoints);
+      if (body.totalSpending !== undefined) member.totalSpending = Number(body.totalSpending);
+      if (body.referralCode !== undefined) member.referralCode = body.referralCode;
+
+      saveDatabase();
       res.writeHead(200);
-      res.end(JSON.stringify({
-        rentals: database.rentals,
-        total: database.rentals.length
-      }));
+      res.end(JSON.stringify({ success: true, member }));
       return;
     }
 
-    // 5. Members & Loyalty CRM
-    if (pathname === '/api/members' && method === 'GET') {
+    // DELETE MEMBER: /api/members/:id
+    if (pathname.startsWith('/api/members/') && method === 'DELETE') {
+      const memberId = pathname.replace('/api/members/', '');
+      const idx = db.members.findIndex(m => m.id === memberId);
+      if (idx === -1) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Member tidak ditemukan' }));
+        return;
+      }
+      const deleted = db.members.splice(idx, 1)[0];
+      saveDatabase();
       res.writeHead(200);
-      res.end(JSON.stringify({
-        members: database.members,
-        total: database.members.length
-      }));
+      res.end(JSON.stringify({ success: true, message: `Member ${deleted.name} dihapus.`, deleted }));
       return;
     }
 
-    // 6. Live IoT Telemetry & Sensor Logs
+    // 5. RENTALS (CRUD)
+    if (pathname === '/api/rentals') {
+      if (method === 'GET') {
+        res.writeHead(200);
+        res.end(JSON.stringify({ rentals: db.rentals, total: db.rentals.length }));
+        return;
+      }
+      // CREATE RENTAL
+      if (method === 'POST') {
+        const body = await parseBody(req);
+        const newRental = {
+          id: 'TBX-RENT-' + Math.floor(1000 + Math.random() * 9000),
+          tenantName: body.tenantName || 'Pelanggan',
+          tenantPhone: body.tenantPhone || '-',
+          locationName: body.locationName || 'Grand Indonesia Mall',
+          compartmentId: body.compartmentId || 'C-GI-A1',
+          type: body.type || 'Cold (4°C)',
+          size: body.size || 'Medium',
+          startTime: body.startTime || new Date().toLocaleString('id-ID'),
+          endTime: body.endTime || '-',
+          initialHours: Number(body.initialHours) || 2,
+          extendedHours: 0,
+          totalHours: Number(body.initialHours) || 2,
+          amount: Number(body.amount) || 25000,
+          paymentMethod: body.paymentMethod || 'QRIS',
+          status: 'active',
+          pin: String(Math.floor(1000 + Math.random() * 9000))
+        };
+        db.rentals.unshift(newRental);
+
+        // Update corresponding compartment status to occupied
+        const targetComp = db.compartments.find(c => c.id === newRental.compartmentId);
+        if (targetComp) {
+          targetComp.status = 'occupied';
+          targetComp.tenant = newRental.tenantName;
+          targetComp.rentalId = newRental.id;
+          targetComp.pin = newRental.pin;
+        }
+
+        db.logs.unshift({
+          time: new Date().toLocaleTimeString('id-ID'),
+          type: 'success',
+          message: `Sewa baru ${newRental.id} dibuat untuk ${newRental.tenantName} di ${newRental.compartmentId}.`
+        });
+        saveDatabase();
+        res.writeHead(201);
+        res.end(JSON.stringify({ success: true, rental: newRental }));
+        return;
+      }
+    }
+
+    // UPDATE RENTAL: /api/rentals/:id
+    if (pathname.startsWith('/api/rentals/') && method === 'PUT') {
+      const rentId = pathname.replace('/api/rentals/', '');
+      const body = await parseBody(req);
+      const rental = db.rentals.find(r => r.id === rentId);
+      if (!rental) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Transaksi tidak ditemukan' }));
+        return;
+      }
+      if (body.status !== undefined) {
+        rental.status = body.status;
+        if (body.status === 'completed') {
+          const comp = db.compartments.find(c => c.id === rental.compartmentId);
+          if (comp) {
+            comp.status = 'available';
+            comp.tenant = null;
+            comp.rentalId = null;
+          }
+        }
+      }
+      if (body.extendedHours !== undefined) {
+        rental.extendedHours = Number(body.extendedHours);
+        rental.totalHours = rental.initialHours + rental.extendedHours;
+      }
+      if (body.amount !== undefined) rental.amount = Number(body.amount);
+
+      saveDatabase();
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, rental }));
+      return;
+    }
+
+    // DELETE RENTAL: /api/rentals/:id
+    if (pathname.startsWith('/api/rentals/') && method === 'DELETE') {
+      const rentId = pathname.replace('/api/rentals/', '');
+      const idx = db.rentals.findIndex(r => r.id === rentId);
+      if (idx === -1) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Transaksi tidak ditemukan' }));
+        return;
+      }
+      const deleted = db.rentals.splice(idx, 1)[0];
+      saveDatabase();
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, message: `Transaksi ${rentId} berhasil dihapus.`, deleted }));
+      return;
+    }
+
+    // 6. TELEMETRY
     if (pathname === '/api/telemetry' && method === 'GET') {
-      // Generate slight natural thermal fluctuations for live chart
       const now = new Date();
       const timeLabels = [];
       const coldData = [];
@@ -406,22 +687,20 @@ const server = http.createServer(async (req, res) => {
         systemPeltier: 'Active (PWM 68%)',
         systemHeater: 'Active (PID 45%)',
         sensorHealth: 'Optimal (DS18B20 Verified)',
-        recentLogs: database.logs
+        recentLogs: db.logs
       }));
       return;
     }
 
-    // 404 for unknown API
     res.writeHead(404);
-    res.end(JSON.stringify({ error: 'API Endpoint Not Found' }));
+    res.end(JSON.stringify({ error: 'Endpoint Not Found' }));
     return;
   }
 
-  // --- STATIC FILES (Frontend SPA) ---
+  // --- STATIC FILES ---
   let reqPath = pathname === '/' ? '/index.html' : pathname;
   let filePath = path.join(PUBLIC_DIR, reqPath);
 
-  // Security check: prevent directory traversal
   if (!filePath.startsWith(PUBLIC_DIR)) {
     res.writeHead(403);
     res.end('Forbidden');
@@ -436,8 +715,7 @@ const server = http.createServer(async (req, res) => {
     '.json': 'application/json; charset=utf-8',
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon'
+    '.svg': 'image/svg+xml'
   };
 
   const contentType = mimeTypes[ext] || 'application/octet-stream';
@@ -445,15 +723,9 @@ const server = http.createServer(async (req, res) => {
   fs.readFile(filePath, (err, content) => {
     if (err) {
       if (err.code === 'ENOENT') {
-        // SPA Fallback to index.html
-        fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (fallbackErr, fallbackContent) => {
-          if (fallbackErr) {
-            res.writeHead(404, { 'Content-Type': 'text/plain' });
-            res.end('404 Not Found');
-          } else {
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end(fallbackContent);
-          }
+        fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (fErr, fContent) => {
+          if (fErr) { res.writeHead(404); res.end('404'); }
+          else { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(fContent); }
         });
       } else {
         res.writeHead(500);
@@ -468,8 +740,8 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
-  console.log(`  TEMPBOX BACKEND ADMIN PORTAL IS RUNNING!`);
-  console.log(`  Local Access URL:   http://localhost:${PORT}`);
-  console.log(`  Directory:          ${__dirname}`);
+  console.log(`  TEMPBOX FULL-CRUD ADMIN PORTAL IS RUNNING!`);
+  console.log(`  URL:         http://localhost:${PORT}`);
+  console.log(`  Data Store:  ${DB_FILE}`);
   console.log(`=======================================================`);
 });
