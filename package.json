@@ -1,0 +1,12 @@
+{
+  "name": "tempbox-backend-admin",
+  "version": "1.0.0",
+  "description": "TEMPBOX Smart Locker Backend Admin Portal & IoT Telemetry Hub",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["tempbox", "iot", "smart-locker", "admin"],
+  "author": "TEMPBOX Team",
+  "license": "ISC"
+}
